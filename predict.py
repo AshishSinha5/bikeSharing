@@ -15,6 +15,7 @@ def prediction(date_time, x, model):
     y = np.ceil(y)
     res = pd.DataFrame(columns=['datetime', 'count'])
     res['datetime'] = date_time
-    res['count'] = y
+    res['count'] = np.asarray(y, dtype=np.int32)
 
-    res.to_csv(predict_param['result_file'] + predict_param['model_name'] + time.strftime("%Y%m%d-%H%M%S") + '.csv')
+    res.to_csv(predict_param['result_file'] + predict_param['model_name'] + time.strftime("%Y%m%d-%H%M%S") + '.csv',
+               index=False)

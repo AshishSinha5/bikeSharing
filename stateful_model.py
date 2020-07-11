@@ -3,20 +3,23 @@ import numpy as np
 import tensorflow as tf
 import time
 
-param = dict(units=16,
+param = dict(units1=128,
+             units2=64,
              return_seq=True,
              return_state=False,
              stateful=True,
-             dropout=0.3,
+             dropout=0.1,
              lr=0.003,
              epoch=50,
              num_dev=1,
-             time_divs=200,
+             time_divs=450,
              batch_size=1,
              log_dir='./logs/',
              verbose=1,
-             rnn_activation='relu',
-             dense_activation='linear',
+             rnn_activation1='elu',
+             rnn_activation2='elu',
+             dense_activation1='relu',
+             dense_activation2='relu',
              model_name='statefulGRU',
              model_save_dir='./models/',
              loss='rmsle'
@@ -32,18 +35,28 @@ def stateful_model(x):
     f = x.shape[-1]
 
     input_tensor = keras.layers.Input(batch_shape=(param['batch_size'], None, f), name='input')
-    rnn = keras.layers.GRU(units=param['units'],
-                           dropout=param['dropout'],
-                           stateful=param['stateful'],
-                           return_state=param['return_state'],
-                           return_sequences=param['return_seq'],
-                           activation=param['rnn_activation'],
-                           name='rnn'
-                           )(input_tensor)
-    dense = keras.layers.Dense(units=1, activation=param['dense_activation'])
-    count_out = keras.layers.TimeDistributed(dense, name='output')(rnn)
 
-    count_model = keras.Model(inputs=input_tensor, outputs=count_out)
+    rnn1 = keras.layers.GRU(units=param['units1'],
+                            stateful=param['stateful'],
+                            return_state=param['return_state'],
+                            return_sequences=param['return_seq'],
+                            activation=param['rnn_activation1'],
+                            name='rnn1'
+                            )(input_tensor)
+
+    rnn2 = keras.layers.GRU(units=param['units2'],
+                            dropout=param['dropout'],
+                            stateful=param['stateful'],
+                            return_state=param['return_state'],
+                            return_sequences=param['return_seq'],
+                            activation=param['rnn_activation2'],
+                            name='rnn2'
+                            )(rnn1)
+
+    dense2 = keras.layers.Dense(units=1, activation=param['dense_activation1'])
+    pred_out = keras.layers.TimeDistributed(dense2, name='output1')(rnn2)
+
+    count_model = keras.Model(inputs=input_tensor, outputs=pred_out)
 
     return count_model
 
@@ -117,7 +130,7 @@ def train_stateful_model(x, y):
             self.batch_idx = self.batch_idx + 1
 
         def on_epoch_begin(self, epoch, logs=None):
-            if epoch%2:
+            if epoch % 2:
                 print(self.model.predict(self.x))
 
     custom_callback = CustomCallback(param['time_divs'], x)
