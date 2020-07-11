@@ -1,5 +1,8 @@
 import pandas as pd
+import numpy as np
 from modData import mod_data, min_max_normalize
+from stateful_model import train_stateful_model
+
 
 train = pd.read_csv("./bike-sharing-demand/train.csv")
 test = pd.read_csv("./bike-sharing-demand/test.csv")
@@ -16,6 +19,15 @@ target = ['count']
 
 train = min_max_normalize(train, std_cols, -1, 1)
 test = min_max_normalize(test, std_cols, -1, 1)
+
+X_train = np.asarray(train[pred_cols])
+y_train = np.asarray(train[target])
+X_train = np.expand_dims(X_train, axis=0)
+y_train = np.expand_dims(y_train, axis=0)
+
+
+
+history = train_stateful_model(X_train, y_train, stateful_param)
 
 
 
