@@ -1,3 +1,0 @@
-- Do EDA
-- Try sequential learning algorithms
-- Use Keras

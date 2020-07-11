@@ -13,8 +13,11 @@ def mod_data(df):
     return df
 
 
-def min_max_normalize(df, cols, max, min):
+def min_max_normalize(df, cols, min, max):
     for col in cols:
         df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min()) * (max - min) + min
     return df
 
+
+def extract_date(df):
+    return df['datetime']
