@@ -2,36 +2,34 @@ import keras
 import numpy as np
 import tensorflow as tf
 import time
-
-param = dict(units=16,
+param = dict(units=32,
              return_seq=True,
              return_state=False,
              stateful=True,
-             dropout=0.3,
-             lr=0.003,
+             dropout=0.2,
+             lr=0.005,
              epoch=50,
              num_dev=1,
-             time_divs=200,
+             time_divs=100,
              batch_size=1,
              log_dir='./logs/',
              verbose=1,
-             rnn_activation='relu',
-             dense_activation='linear',
+             rnn_activation='tanh',
+             dense_activation='relu',
              model_name='statefulGRU',
-             model_save_dir='./models/',
-             loss='rmsle'
+             model_save_dir='./models/'
              )
 
 
 def rmsle_error(y_true, y_pred):
     y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
-    return tf.math.sqrt(tf.math.reduce_mean((tf.math.log1p(y_pred) - tf.math.log1p(y_true)) ** 2, axis=1))
+    return tf.math.sqrt(tf.math.reduce_mean((tf.math.log1p(y_pred) - tf.math.log1p(y_true))**2, axis=1))
 
 
 def stateful_model(x):
     f = x.shape[-1]
 
-    input_tensor = keras.layers.Input(batch_shape=(param['batch_size'], None, f), name='input')
+    input_tensor = keras.layers.Input(batch_shape=(param['num_dev'], None, f), name='input')
     rnn = keras.layers.GRU(units=param['units'],
                            dropout=param['dropout'],
                            stateful=param['stateful'],
@@ -88,27 +86,26 @@ class DataGenerator(keras.utils.Sequence):
 
         y_out = self.y[start_bidx:end_bidx, :, :]
         y_out = y_out[:, start_tidx:end_tidx, :]
+
         return x_out, y_out
 
 
 def train_stateful_model(x, y):
     model = compile_model(x)
-    keras.utils.plot_model(model, show_shapes=True)
+    keras.utils.plot_model(model,show_shapes=True)
     train_generator = DataGenerator(x=x,
                                     y=y,
                                     batch_size=param['batch_size'],
                                     time_divs=param['time_divs'])
 
-    tensorboard_callback = keras.callbacks.TensorBoard(
-        log_dir=param['log_dir'] + param['model_name'] + param['loss'] + time.strftime("%Y%m%d-%H%M%S"))
+    tensorboard_callback = keras.callbacks.TensorBoard(log_dir=param['log_dir']+ param['model_name'] + time.strftime("%Y%m%d-%H%M%S"))
 
     class CustomCallback(keras.callbacks.Callback):
 
-        def __init__(self, time_divs, x):
+        def __init__(self, time_divs):
             super().__init__()
             self.train_time_divs = time_divs
             self.batch_idx = 0
-            self.x = x
 
         def on_batch_begin(self, batch, logs=None):
             if self.batch_idx % self.train_time_divs == 0:
@@ -116,17 +113,13 @@ def train_stateful_model(x, y):
                 self.model.reset_states()
             self.batch_idx = self.batch_idx + 1
 
-        def on_epoch_begin(self, epoch, logs=None):
-            if epoch%2:
-                print(self.model.predict(self.x))
-
-    custom_callback = CustomCallback(param['time_divs'], x)
-
+    batch_end_callback = CustomCallback(param['time_divs'])
+    
     history = model.fit_generator(train_generator,
                                   epochs=param['epoch'],
-                                  callbacks=[tensorboard_callback, custom_callback],
+                                  callbacks=[tensorboard_callback, batch_end_callback],
                                   verbose=param['verbose'])
 
-    model.save_weights(param['model_save_dir'] + param['model_name'] + param['loss'] + time.strftime("%Y%m%d-%H%M%S"))
+    model.save_weights(param['model_save_dir']+param['model_name']+time.strftime("%Y%m%d-%H%M%S"))
 
     return history, model

@@ -18,15 +18,15 @@ test_date = extract_date(test)
 train = mod_data(train)
 test = mod_data(test)
 
-std_cols = ['temp', 'atemp', 'humidity', 'windspeed', 'year', 'month', 'day', 'hour', ]
+std_cols = ['temp', 'atemp', 'humidity', 'windspeed']
 pred_cols = ['season', 'holiday', 'workingday', 'weather',
              'temp', 'atemp', 'humidity', 'windspeed', 'year',
              'month', 'day', 'hour']
 target = ['count']
 
 if train_param['norm']:
-    train = min_max_normalize(train, pred_cols, -1, 1)
-    test = min_max_normalize(test, pred_cols, -1, 1)
+    train = min_max_normalize(train, std_cols, -1, 1)
+    test = min_max_normalize(test, std_cols, -1, 1)
 
 X_train = np.asarray(train[pred_cols])
 y_train = np.asarray(train[target])
