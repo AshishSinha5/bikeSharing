@@ -106,7 +106,7 @@ class DataGenerator(keras.utils.Sequence):
 
 def train_stateful_model(x, y):
     model = compile_model(x)
-    keras.utils.plot_model(model, show_shapes=True)
+
     train_generator = DataGenerator(x=x,
                                     y=y,
                                     batch_size=param['batch_size'],
@@ -117,11 +117,10 @@ def train_stateful_model(x, y):
 
     class CustomCallback(keras.callbacks.Callback):
 
-        def __init__(self, time_divs, x):
+        def __init__(self, time_divs):
             super().__init__()
             self.train_time_divs = time_divs
             self.batch_idx = 0
-            self.x = x
 
         def on_batch_begin(self, batch, logs=None):
             if self.batch_idx % self.train_time_divs == 0:
@@ -129,11 +128,7 @@ def train_stateful_model(x, y):
                 self.model.reset_states()
             self.batch_idx = self.batch_idx + 1
 
-        def on_epoch_begin(self, epoch, logs=None):
-            if epoch % 2:
-                print(self.model.predict(self.x))
-
-    custom_callback = CustomCallback(param['time_divs'], x)
+    custom_callback = CustomCallback(param['time_divs'])
 
     history = model.fit_generator(train_generator,
                                   epochs=param['epoch'],
